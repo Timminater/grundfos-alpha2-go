@@ -59,7 +59,7 @@ async def async_set_pressure(
     requested = pressure_wire(mode, metres, limits.min, limits.max)
     spec = alpha2go.USER_SETPOINTS[mode]
     current = await pump.get_object(spec)
-    if spec.type != 302 or current.version != 1 or len(current.data) != 18:
+    if spec.type != 302 or current.header.version != 1 or len(current.data) != 18:
         raise ValueError("The setpoint configuration format is unsupported")
 
     payload = current.data[:2] + objects.encode_f32(requested) + current.data[6:]
@@ -69,7 +69,7 @@ async def async_set_pressure(
         raise ValueError("The pump changed mode before the write")
 
     return await async_write_verified(
-        pump, spec, current.version, payload,
+        pump, spec, current.header.version, payload,
         lambda: async_verify_pressure(pump, mode, requested),
     )
 

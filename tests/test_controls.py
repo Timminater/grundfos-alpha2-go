@@ -6,11 +6,13 @@ from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import AsyncMock
 
 from grundfos_ble import RequestTimeout
+from grundfos_ble.genibus import objects
 from grundfos_ble.genibus.apdu import Apdu, DataClass
 from grundfos_ble.genibus.telegram import Telegram
 from grundfos_ble.registry import alpha2go as profile
 
 from custom_components.grundfos_ble.controls import (
+    async_read_limiter_range,
     async_run_command,
     async_set_autonight,
     async_set_limiter,
@@ -25,10 +27,25 @@ def ack(data_class, data=b"\x00"):
     return Telegram.request(Apdu(data_class, 0, data))
 
 
+def object_reply(type_id, data):
+    return objects.ObjectReply(objects.ObjectHeader(0, type_id, 1, len(data)), data)
+
+
 class ControlTests(IsolatedAsyncioTestCase):
     def setUp(self):
         self.pump = AsyncMock()
         self.pump.transport.request.return_value = ack(DataClass.DATA_OBJECTS)
+
+    async def test_reads_limiter_range_from_real_reply(self):
+        frame = bytes.fromhex(
+            "24 14 f8 e7 0a 10 00 03 81 01 00 00 09 01 39 da 74 0e 3a 7e dc bb 44 1a"
+        )
+        self.pump.get_object.return_value = objects.parse_get_reply(
+            Telegram.decode(frame).apdu
+        )[0]
+        low, high = await async_read_limiter_range(self.pump, True)
+        self.assertAlmostEqual(low, 1.5, places=2)
+        self.assertAlmostEqual(high, 3.5, places=2)
 
     async def test_mode_command_keeps_the_stored_setpoint(self):
         self.pump.read_operation.side_effect = [
@@ -41,9 +58,7 @@ class ControlTests(IsolatedAsyncioTestCase):
         self.assertEqual(request.data[-7:], b"\x00\x06\x0e\x7f\xff\xff\xff")
 
     async def test_wrong_preset_aborts_before_mode_switch(self):
-        self.pump.get_object.return_value = SimpleNamespace(
-            version=1, data=b"\x02" + struct.pack(">f", 10000)
-        )
+        self.pump.get_object.return_value = object_reply(869, b"\x02" + struct.pack(">f", 10000))
         with self.assertRaises(ValueError):
             await async_set_preset(self.pump, "constant_pressure_1")
         self.pump.transport.request.assert_not_awaited()
@@ -55,9 +70,9 @@ class ControlTests(IsolatedAsyncioTestCase):
         active = SimpleNamespace(control_mode=mode, setpoint=wire)
         self.pump.read_operation.side_effect = [previous, previous, active, active, active, active]
         self.pump.read_factory_limits.return_value = SimpleNamespace(min=10000, max=60000)
-        config = SimpleNamespace(version=1, data=bytes(18))
+        config = object_reply(302, bytes(18))
         self.pump.get_object.side_effect = [
-            SimpleNamespace(version=1, data=bytes((mode,)) + struct.pack(">f", wire)),
+            object_reply(869, bytes((mode,)) + struct.pack(">f", wire)),
             config,
             config,
         ]
@@ -78,9 +93,9 @@ class ControlTests(IsolatedAsyncioTestCase):
         original = b"\x01\x00" + struct.pack(">f", 0.0005) + b"\xaa" * 12
         expected = original[:2] + struct.pack(">f", 2 / 3600) + original[6:]
         self.pump.get_object.side_effect = [
-            SimpleNamespace(data=original, version=1),
-            SimpleNamespace(data=b"\x01" + struct.pack(">ff", 0.0001, 0.001), version=1),
-            SimpleNamespace(data=expected, version=1),
+            object_reply(895, original),
+            object_reply(897, b"\x01" + struct.pack(">ff", 0.0001, 0.001)),
+            object_reply(895, expected),
         ]
         await async_set_limiter(self.pump, True, value=2)
         request = self.pump.transport.request.await_args.args[0].apdu
@@ -89,9 +104,9 @@ class ControlTests(IsolatedAsyncioTestCase):
 
     async def test_limiter_cannot_overtake_the_other_enabled_limit(self):
         self.pump.get_object.side_effect = [
-            SimpleNamespace(data=b"\x01\x01" + struct.pack(">f", 0.0005) + bytes(12), version=1),
-            SimpleNamespace(data=b"\x01" + struct.pack(">ff", 0.0001, 0.001), version=1),
-            SimpleNamespace(data=b"\x02\x01" + struct.pack(">f", 0.0007) + bytes(12), version=1),
+            object_reply(895, b"\x01\x01" + struct.pack(">f", 0.0005) + bytes(12)),
+            object_reply(897, b"\x01" + struct.pack(">ff", 0.0001, 0.001)),
+            object_reply(895, b"\x02\x01" + struct.pack(">f", 0.0007) + bytes(12)),
         ]
         with self.assertRaises(ValueError):
             await async_set_limiter(self.pump, True, value=2)

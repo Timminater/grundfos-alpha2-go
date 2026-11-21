@@ -32,7 +32,7 @@ class PressureWriteTest(IsolatedAsyncioTestCase):
         self.pump.read_factory_limits.return_value = SimpleNamespace(
             min=2 * PA_PER_METRE, max=7 * PA_PER_METRE
         )
-        self.pump.get_object.return_value = SimpleNamespace(version=1, data=ORIGINAL)
+        self.pump.get_object.return_value = objects.ObjectReply(objects.ObjectHeader(0, 302, 1, len(ORIGINAL)), ORIGINAL)
         self.pump.read_user_setpoint.return_value = SimpleNamespace(setpoint=TARGET_PA)
         reply_apdu = Apdu(DataClass.DATA_OBJECTS, 0, b"\x00")
         self.pump.transport.request.return_value = Telegram.request(reply_apdu)

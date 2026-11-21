@@ -64,7 +64,7 @@ async def async_set_preset(pump: GrundfosPump, option: str) -> float:
     mode, index = PRESETS[option]
     preset = await pump.get_object(profile.panel_preset(index))
     wire = objects.read_f32(preset.data, 1)
-    if preset.version != 1 or len(preset.data) != 5 or preset.data[0] != mode or wire is None:
+    if preset.header.version != 1 or len(preset.data) != 5 or preset.data[0] != mode or wire is None:
         raise ValueError("The pump returned an incompatible preset")
     limits = await pump.read_factory_limits(mode)
     if limits.min is None or limits.max is None:
@@ -72,7 +72,7 @@ async def async_set_preset(pump: GrundfosPump, option: str) -> float:
     value = wire / SETPOINT_FACTORS[mode]
     pressure_wire(mode, value, limits.min, limits.max)
     stored = await pump.get_object(profile.USER_SETPOINTS[mode])
-    if stored.version != 1 or len(stored.data) != 18:
+    if stored.header.version != 1 or len(stored.data) != 18:
         raise ValueError("The pump returned an incompatible setpoint object")
 
     previous = (await pump.read_operation()).control_mode
@@ -94,7 +94,7 @@ async def async_read_limiter_range(pump: GrundfosPump, maximum: bool) -> tuple[f
     low = objects.read_f32(reply.data, 1)
     high = objects.read_f32(reply.data, 5)
     if (
-        reply.version != 1 or len(reply.data) != 9 or reply.data[0] != ident
+        reply.header.version != 1 or len(reply.data) != 9 or reply.data[0] != ident
         or low is None or high is None
         or not (math.isfinite(low) and math.isfinite(high) and 0 <= low <= high)
     ):
@@ -110,7 +110,7 @@ async def async_set_limiter(
     spec, _, ident = LIMITER_SPECS[maximum]
     reply = await pump.get_object(spec)
     data = reply.data
-    if reply.version != 1 or len(data) != 18 or data[0] != ident or data[1] not in (0, 1):
+    if reply.header.version != 1 or len(data) != 18 or data[0] != ident or data[1] not in (0, 1):
         raise ValueError("The pump returned an incompatible limiter object")
     use_limit = bool(data[1]) if enabled is None else enabled
     wire = objects.read_f32(data, 2) if value is None else value / profile.SECONDS_PER_HOUR
@@ -125,7 +125,7 @@ async def async_set_limiter(
     if use_limit:
         other = await pump.get_object(LIMITER_SPECS[not maximum][0])
         other_limit = objects.read_f32(other.data, 2)
-        if other.version != 1 or len(other.data) != 18 or other.data[1] not in (0, 1):
+        if other.header.version != 1 or len(other.data) != 18 or other.data[1] not in (0, 1):
             raise ValueError("The other flow limit could not be checked")
         if other.data[1] and (
             wire is None or other_limit is None or not math.isfinite(other_limit)
@@ -223,7 +223,7 @@ async def async_set_duty_point(pump: GrundfosPump, flow: float, head: float) -> 
         if limits.min is None or limits.max is None:
             raise ValueError("The pump did not return the pressure limits")
         curve = await pump.get_object(profile.PP_CURVE)
-        if curve.version != 1:
+        if curve.header.version != 1:
             raise ValueError("This pressure curve version is unsupported")
         head = proportional_setpoint(flow, head, limits.min, limits.max, curve.data)
     await async_set_pressure(pump, mode, head)
