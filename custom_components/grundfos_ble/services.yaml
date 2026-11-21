@@ -1,0 +1,23 @@
+set_duty_point:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: grundfos_ble
+    flow:
+      required: true
+      selector:
+        number:
+          min: 0
+          step: 0.01
+          mode: box
+          unit_of_measurement: "m³/h"
+    head:
+      required: true
+      selector:
+        number:
+          min: 0.01
+          step: 0.01
+          mode: box
+          unit_of_measurement: m

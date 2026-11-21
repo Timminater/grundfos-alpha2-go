@@ -1,0 +1,102 @@
+{
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pompopties",
+        "data": {
+          "scan_interval": "Seconden tussen uitlezingen",
+          "pressure_control": "Experimentele pompbediening"
+        },
+        "data_description": {
+          "pressure_control": "Sta schrijfcommando's toe, waaronder het wijzigen van de modus en het stoppen van de circulatie."
+        }
+      }
+    }
+  },
+  "entity": {
+    "number": {
+      "constant_pressure_setpoint": {
+        "name": "Setpoint constante druk"
+      },
+      "proportional_pressure_setpoint": {
+        "name": "Setpoint proportionele druk"
+      },
+      "speed_setpoint": {
+        "name": "Toerentalsetpoint"
+      },
+      "flow_setpoint": {
+        "name": "Debietsetpoint"
+      },
+      "maximum_flow_limit": {
+        "name": "Maximumdebiet"
+      },
+      "minimum_flow_limit": {
+        "name": "Minimumdebiet"
+      }
+    },
+    "select": {
+      "pump_mode": {
+        "name": "Regelmodus en pompstand",
+        "state": {
+          "constant_pressure": "Constante druk",
+          "proportional_pressure": "Proportionele druk",
+          "constant_curve": "Constante curve",
+          "constant_flow": "Constant debiet",
+          "cp_autoadapt": "Constante druk AUTOADAPT",
+          "pp_autoadapt": "Proportionele druk AUTOADAPT",
+          "constant_pressure_1": "Constante druk I",
+          "constant_pressure_2": "Constante druk II",
+          "constant_pressure_3": "Constante druk III",
+          "proportional_pressure_1": "Proportionele druk I",
+          "proportional_pressure_2": "Proportionele druk II",
+          "proportional_pressure_3": "Proportionele druk III",
+          "constant_curve_1": "Constante curve I",
+          "constant_curve_2": "Constante curve II",
+          "constant_curve_3": "Constante curve III"
+        }
+      }
+    },
+    "switch": {
+      "autonight_switch": {
+        "name": "AutoNight"
+      },
+      "maximum_flow_limit_switch": {
+        "name": "Maximumdebiet begrenzen"
+      },
+      "minimum_flow_limit_switch": {
+        "name": "Minimumdebiet begrenzen"
+      }
+    },
+    "button": {
+      "start": {
+        "name": "Start pomp"
+      },
+      "stop": {
+        "name": "Stop pomp"
+      },
+      "min_curve": {
+        "name": "Draai op minimumcurve"
+      },
+      "max_curve": {
+        "name": "Draai op maximumcurve"
+      }
+    }
+  },
+  "services": {
+    "set_duty_point": {
+      "name": "Werkpunt instellen",
+      "description": "Stel de druk in bij een gegeven debiet binnen de actieve constante of proportionele drukmodus.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Pomp"
+        },
+        "flow": {
+          "name": "Debiet"
+        },
+        "head": {
+          "name": "Opvoerhoogte"
+        }
+      }
+    }
+  }
+}

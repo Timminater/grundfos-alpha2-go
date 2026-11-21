@@ -1,0 +1,30 @@
+{
+  "domain": "grundfos_ble",
+  "name": "Grundfos Bluetooth",
+  "bluetooth": [
+    {
+      "service_data_uuid": "0000fe5d-0000-1000-8000-00805f9b34fb",
+      "connectable": true
+    }
+  ],
+  "codeowners": [
+    "@Timminater"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "bluetooth_adapters"
+  ],
+  "documentation": "https://github.com/Timminater/grundfos-alpha2-go",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Timminater/grundfos-alpha2-go/issues",
+  "loggers": [
+    "grundfos_ble",
+    "ble_bond"
+  ],
+  "requirements": [
+    "grundfos-ble==0.3.0",
+    "ble-bond==1.1.0"
+  ],
+  "version": "0.3.0-dev.2"
+}
